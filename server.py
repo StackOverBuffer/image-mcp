@@ -22,7 +22,9 @@ Configuration (environment variables, or a .env file next to this script):
   LITELLM_BASE_URL   e.g. http://localhost:4000           (required)
   LITELLM_API_KEY    bearer token, if your proxy needs one
   IMAGE_MODEL        model name, default: minimax-h3-image
-  IMAGE_OUTPUT_DIR   where to save images, default: <script dir>/generated
+  IMAGE_OUTPUT_DIR   where to save images; default: <script dir>/generated, or
+                     <system temp dir>/image-mcp/generated when the script runs
+                     from a temp dir itself (e.g. `uv run <URL>`)
   IMAGE_TIMEOUT      request timeout in seconds, default: 600
   IMAGE_PREVIEW_MAX  max side (px) of the inline preview the agent sees, default: 1024;
                      0 = inline full-res. Full-res files are always saved to disk.
@@ -35,6 +37,7 @@ import io
 import json
 import os
 import re
+import tempfile
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -79,8 +82,23 @@ _load_dotenv()
 BASE_URL = os.environ.get("LITELLM_BASE_URL", "").rstrip("/")
 API_KEY = os.environ.get("LITELLM_API_KEY", "")
 MODEL = os.environ.get("IMAGE_MODEL", "minimax-h3-image")
+def _default_output_dir(script_dir: Path) -> Path:
+    """Output dir used when IMAGE_OUTPUT_DIR is unset.
+
+    Normally <script_dir>/generated. When the script itself runs from a temp
+    location (e.g. `uv run <URL>` executes the fetched script from uv's temp
+    dir), fall back to a stable folder under the system temp dir - a per-run
+    random dir would break get_image/list_images across restarts.
+    """
+    script_dir = script_dir.resolve()
+    temp = Path(tempfile.gettempdir()).resolve()
+    if script_dir.is_relative_to(temp):
+        return temp / "image-mcp" / "generated"
+    return script_dir / "generated"
+
+
 OUTPUT_DIR = Path(
-    os.environ.get("IMAGE_OUTPUT_DIR", str(SCRIPT_DIR / "generated"))
+    os.environ.get("IMAGE_OUTPUT_DIR") or _default_output_dir(SCRIPT_DIR)
 ).expanduser()
 TIMEOUT = float(os.environ.get("IMAGE_TIMEOUT", "600"))
 PREVIEW_MAX = int(os.environ.get("IMAGE_PREVIEW_MAX", "1024"))

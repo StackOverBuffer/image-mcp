@@ -16,6 +16,7 @@ import os
 import re
 import struct
 import sys
+import tempfile
 import threading
 import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -125,6 +126,14 @@ async def run_tests() -> None:
     os.environ["PROMPT_LLM_MODEL"] = "qwen3.8-27b"
 
     import server as srv
+
+    # 0) _default_output_dir: temp-dir script -> stable %TMP% folder; local script -> unchanged
+    under_temp = Path(tempfile.gettempdir()) / "somewhere" / "else"
+    expected_temp = Path(tempfile.gettempdir()) / "image-mcp" / "generated"
+    assert srv._default_output_dir(under_temp) == expected_temp, srv._default_output_dir(under_temp)
+    outside_temp = Path(str(Path(tempfile.gettempdir()).resolve()) + "-not-temp") / "repo"
+    assert srv._default_output_dir(outside_temp) == outside_temp / "generated"
+    print("[PASS] _default_output_dir: temp-dir fallback + unchanged local default", flush=True)
 
     client = Client(srv.mcp)
     async with client:

@@ -184,7 +184,7 @@ To verify what the server actually picked up, ask the agent to call
 | `LITELLM_BASE_URL` | — (required) | e.g. `https://litellm.example.com` (add `/v1` yourself only if you want) |
 | `LITELLM_API_KEY` | — | Bearer token, if the proxy needs one |
 | `IMAGE_MODEL` | `minimax-h3-image` | Model name as configured in LiteLLM |
-| `IMAGE_OUTPUT_DIR` | `<script dir>/generated` | Where PNGs are saved |
+| `IMAGE_OUTPUT_DIR` | `<script dir>/generated`; `%TMP%\image-mcp\generated` when the script runs from a temp dir (e.g. `uv run <URL>`) | Where PNGs are saved |
 | `IMAGE_TIMEOUT` | `600` | HTTP timeout in seconds (H3 can be slow) |
 | `IMAGE_PREVIEW_MAX` | `1024` | Max side (px) of the inline preview the agent sees; `0` = inline full-res. Full-res files are always saved to disk |
 | `PROMPT_LLM_MODEL` | — (required for `expand_prompt`) | Chat model on the same proxy used for prompt expansion; must be vision-capable if you pass `image_paths` |
@@ -239,9 +239,10 @@ uv resolves the inline deps and runs the remote file):
 
 Three things differ from a local install:
 
-- **`IMAGE_OUTPUT_DIR` is required.** The default output dir is
-  `<script dir>/generated`, and the script dir here is uv's temp directory -
-  without this env var, images land somewhere ephemeral.
+- **`IMAGE_OUTPUT_DIR` is optional but recommended.** Unset, images go to a
+  stable temp folder (`%TMP%\image-mcp\generated`) that survives restarts -
+  but the OS may clean temp folders, so set the env var for anything you
+  want to keep.
 - **No `.env` discovery.** The fetched script runs from a temp dir, so all
   configuration must come through the env block (Option A above).
 - **`main` is a moving target.** Every start runs the current branch tip.
