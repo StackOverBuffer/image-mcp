@@ -27,7 +27,12 @@ lives in the tool docstrings).
   SHA-256-tracked in `prompts/manifest.json`. Note:
   `prompts/edit/request_params.json` is a LOCAL addition (flagged in the
   manifest), not part of the upstream release. Prompt/params files are read
-  per call; code changes require an MCP client restart to take effect.
+  per call; code changes require an MCP client restart to take effect. The
+  files are also embedded in `server.py` between the EMBEDDED PROMPTS
+  markers as fallback for single-file runs (`uv run <URL>`); regenerate that
+  block with `uv run tests/embed_prompts.py` after changing any prompts/
+  file - disk wins at runtime, and the smoke test asserts
+  embedded == disk == manifest hashes.
 - `tests/test_smoke.py` - mock-API suite; the gate for every change.
 - `tests/live_*.py`, `probe_*.py`, `compare_pe_models.py`, `check_vision.py`,
   `list_models.py` - live probes against the real server. They cost API

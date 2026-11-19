@@ -11,6 +11,7 @@ No network or API key needed - the mock only echoes valid responses.
 
 import asyncio
 import base64
+import hashlib
 import json
 import os
 import re
@@ -134,6 +135,24 @@ async def run_tests() -> None:
     outside_temp = Path(str(Path(tempfile.gettempdir()).resolve()) + "-not-temp") / "repo"
     assert srv._default_output_dir(outside_temp) == outside_temp / "generated"
     print("[PASS] _default_output_dir: temp-dir fallback + unchanged local default", flush=True)
+
+    # 0b) embedded PE prompts: hashes match manifest, no drift vs prompts/, and
+    #     they serve as fallback when the prompts dir is absent (single-file/URL runs)
+    manifest = json.loads((SERVER_DIR / "prompts" / "manifest.json").read_text(encoding="utf-8-sig"))
+    for key, embedded in srv.EMBEDDED_PROMPTS.items():
+        expected = manifest[key.split("/")[0]]["files"][f"prompt/{key}"]["sha256"]
+        assert hashlib.sha256(embedded.encode("utf-8")).hexdigest() == expected, key
+        disk = SERVER_DIR / "prompts" / key
+        if disk.is_file():
+            assert disk.read_text(encoding="utf-8") == embedded, f"drift between server.py and prompts/: {key}"
+    orig_dir = srv.PROMPTS_DIR
+    try:
+        srv.PROMPTS_DIR = Path(tempfile.gettempdir()) / "image-mcp-missing-prompts"
+        assert srv._prompt_file("t2i", "system_prompt.txt") == srv.EMBEDDED_PROMPTS["t2i/system_prompt.txt"]
+        assert srv._load_params("edit") == json.loads(srv.EMBEDDED_PROMPTS["edit/request_params.json"])
+    finally:
+        srv.PROMPTS_DIR = orig_dir
+    print("[PASS] embedded PE prompts: manifest hashes, no drift, remote fallback", flush=True)
 
     client = Client(srv.mcp)
     async with client:

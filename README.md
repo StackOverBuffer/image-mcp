@@ -51,7 +51,9 @@ regardless, and `edit_image` always uploads the full-res file.
 
 `expand_prompt` runs MiniMax's official prompt-expansion prompts, vendored
 under `prompts/` and SHA-256-verified against the release manifest of
-[MiniMax-H3-Image-PE](https://huggingface.co/MiniMaxAI/MiniMax-H3-Image-PE):
+[MiniMax-H3-Image-PE](https://huggingface.co/MiniMaxAI/MiniMax-H3-Image-PE)
+(the files are also embedded in `server.py` as fallback, so single-file
+deployments like `uv run <URL>` work without the directory):
 
 - **Text-to-image**: short idea → detailed caption + recommended aspect ratio
   (10-ratio enum → pass it as `size=`). Works on any chat model behind the
@@ -218,7 +220,8 @@ take minutes.
 
 `server.py` carries its dependencies as inline script metadata, so `uv` can
 fetch and run it straight from the repo - no clone, no local copy (verified:
-uv resolves the inline deps and runs the remote file):
+uv resolves the inline deps and runs the remote file; the PE prompts are
+embedded, so `expand_prompt` works here too):
 
 ```json
 {
@@ -313,7 +316,6 @@ The minimal working bundle is:
 
 ```
 server.py
-prompts/            # PE prompt files (needed only for expand_prompt)
 .python-version     # pins Python 3.12 for uv (recommended; avoids wheel gaps on very new Pythons)
 ```
 
@@ -323,9 +325,10 @@ client's MCP config (`LITELLM_BASE_URL`, `LITELLM_API_KEY`,
 `uv` resolves all dependencies automatically on first start. A `.env` file
 works instead of env vars if preferred.
 
-Without `prompts/`, everything except `expand_prompt` still works (its tools
-fail with a clear error). Nothing else is needed: `tests/`, `generated/`,
-`README.md` are development-time only.
+The PE prompts are embedded in `server.py`; a `prompts/` directory next to it
+overrides the embedded copies (handy for tweaking without touching code).
+Nothing else is needed: `tests/`, `generated/`, `README.md` are
+development-time only.
 
 ## Verify
 
