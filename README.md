@@ -312,3 +312,9 @@ uv run tests/compare_pe_models.py       # A/B expansion models (speed + captions
 uv run tests/check_vision.py            # which chat models accept images
 uv run tests/list_models.py             # list models on the proxy
 ```
+
+## License
+
+GNU Affero General Public License v3.0 — see [LICENSE](LICENSE). Note AGPL's
+network-use clause: if you serve a modified version of this server, the
+modified source must be made available to its users.
