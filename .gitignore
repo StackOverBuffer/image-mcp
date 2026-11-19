@@ -1,0 +1,6 @@
+generated/
+generated-test/
+.env
+__pycache__/
+*.pyc
+.venv/
