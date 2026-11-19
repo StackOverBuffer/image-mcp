@@ -214,6 +214,43 @@ its PATH, use the pip route and `command: "python"`.
 Set the client's MCP tool timeout generously (≥ 5 min) — image generation can
 take minutes.
 
+## Use directly from GitHub (no clone)
+
+`server.py` carries its dependencies as inline script metadata, so `uv` can
+fetch and run it straight from the repo - no clone, no local copy (verified:
+uv resolves the inline deps and runs the remote file):
+
+```json
+{
+  "mcpServers": {
+    "minimax-image": {
+      "command": "uv",
+      "args": ["run", "https://raw.githubusercontent.com/StackOverBuffer/image-mcp/main/server.py"],
+      "env": {
+        "LITELLM_BASE_URL": "https://litellm.example.com",
+        "LITELLM_API_KEY": "sk-...",
+        "IMAGE_OUTPUT_DIR": "C:\\path\\to\\generated",
+        "PROMPT_LLM_MODEL": "glm-5.3-flash"
+      }
+    }
+  }
+}
+```
+
+Three things differ from a local install:
+
+- **`IMAGE_OUTPUT_DIR` is required.** The default output dir is
+  `<script dir>/generated`, and the script dir here is uv's temp directory -
+  without this env var, images land somewhere ephemeral.
+- **No `.env` discovery.** The fetched script runs from a temp dir, so all
+  configuration must come through the env block (Option A above).
+- **`main` is a moving target.** Every start runs the current branch tip.
+  Pin a tag or commit for stability:
+  `.../StackOverBuffer/image-mcp/v1.0.0/server.py`.
+
+The dependency environment is built once and cached by uv afterwards; each
+start only re-fetches the single script file.
+
 ## Agent usage pattern (optional)
 
 The MCP already carries this policy in its tool descriptions, so a plain agent
