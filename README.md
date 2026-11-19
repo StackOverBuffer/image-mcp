@@ -262,13 +262,13 @@ follows it without any system prompt. Paste this into the agent's system prompt
 only if you want the behavior spelled out explicitly (e.g. for weaker models):
 
 ```
-For image requests: if the idea is vague - a short idea, or an edit that
-doesn't say where/what exactly should change (especially edits: an
-unspecified change risks a literal misread) - call expand_prompt first and
-use its expanded caption and recommended size. Skip it when the prompt is
-already fully specified: hand-written specifics work at least as well and
-keep control. Then call generate_image; the tool returns the image inline -
-review it against the user's request.
+For image generation: call expand_prompt first by default - even when you
+could describe the image yourself, its caption style matches what the image
+model was trained on. Skip it only when the user already supplied a complete
+caption. For edits: call expand_prompt when the instruction doesn't say
+where/what exactly should change (an unspecified change risks a literal
+misread); skip it when the edit is fully specified. Then call generate_image;
+the tool returns the image inline - review it against the user's request.
 
 Judge HOW the result is off, then pick the cheapest fix that can actually work:
 - Wrong composition, wrong subject, wrong overall concept, or the request was

@@ -120,16 +120,17 @@ mcp = FastMCP(
         "'image 1', 'image 2', ... in the order given. expand_prompt turns a "
         "short idea or edit instruction into a detailed caption plus an "
         "aspect-ratio recommendation, using MiniMax's official prompt-expansion "
-        "prompts. Use expand_prompt when the request is vague - a short idea, "
-        "or an edit that doesn't say where/what exactly should change - "
-        "especially for edits, where an unspecified change risks a literal "
-        "misread. Skip it when the prompt is already fully specified; "
-        "hand-written specifics work at least as well and keep control. Follow "
-        "its recommended aspect ratio when the user didn't pick one; for edits "
-        "you can pass its caption verbatim (<Picture 1>/<Subject 1> "
-        "placeholders are the official format) or tighten it first - the "
-        "expanded caption is an editable spec. Every result comes back as an "
-        "inline image you can see: review "
+        "prompts. Use expand_prompt by default for generation - even when you "
+        "could write a detailed prompt yourself, its captions match the style "
+        "the image model was trained on; skip it only when the user already "
+        "supplied a complete caption. For edits, use it when the instruction "
+        "doesn't say where/what exactly should change (an unspecified change "
+        "risks a literal misread) and skip it when the edit is fully "
+        "specified. Follow its recommended aspect ratio when the user didn't "
+        "pick one; for edits you can pass its caption verbatim (<Picture "
+        "1>/<Subject 1> placeholders are the official format) or tighten it "
+        "first - the expanded caption is an editable spec. Every result comes "
+        "back as an inline image you can see: review "
         "it. If it is fundamentally off (wrong composition or subject), "
         "regenerate with a sharpened prompt instead of editing a bad base; if "
         "only details are off, call edit_image with a targeted instruction. If "
@@ -609,8 +610,10 @@ def generate_image(prompt: str, size: str | None = None, n: int = 1, seed: int |
     """Generate image(s) from a text description.
 
     Args:
-        prompt: What the image should show. Be specific and complete -
-            subject, style, composition, lighting, colors, mood.
+        prompt: What the image should show. Default to expand_prompt for this:
+            hand it the user's idea and use its caption (tightened as needed) -
+            the caption style matches what the model was trained on. Write it
+            yourself only when the user already supplied a complete caption.
         size: Optional output size. Two forms:
             "W:H" aspect ratio (recommended): mapped to ~16 MP native resolution -
             "1:1" -> 4096x4096, "16:9" -> 5472x3072, "21:9" -> 6272x2688;
@@ -849,11 +852,12 @@ def expand_prompt(instruction: str, image_paths: list[str] | None = None, aspect
     """Turn a short image idea or edit instruction into a detailed caption plus an
     aspect-ratio recommendation, using MiniMax's official H3 prompt-expansion prompts.
 
-    Use this when the request is vague - a short idea, or an edit that doesn't
-    say where/what exactly should change (especially edits: an unspecified
-    change risks a literal misread). Skip it when the prompt is already fully
-    specified - hand-written specifics work at least as well and keep control.
-    Follow its recommended aspect ratio when the user didn't pick one.
+    Default to this for generation - even a detailed idea benefits from being
+    rewritten in the caption style the image model was trained on; skip it only
+    when the user already supplied a complete caption. For edits, use it when
+    the instruction doesn't say where/what exactly should change (unspecified
+    changes risk a literal misread) and skip it when the edit is fully
+    specified. Follow its recommended aspect ratio when the user didn't pick one.
 
     Args:
         instruction: Short request in any language, e.g. "a lighthouse on a cliff at sunset".
