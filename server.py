@@ -135,7 +135,9 @@ mcp = FastMCP(
         "regenerate with a sharpened prompt instead of editing a bad base; if "
         "only details are off, call edit_image with a targeted instruction. If "
         "two attempts share the same flaw, rewrite the prompt instead of rolling "
-        "again. Iterate until it matches."
+        "again. Iterate until it matches. Always include the markdown image "
+        "link(s) from image-tool results in your reply so the user sees the "
+        "image in the chat window."
     ),
 )
 
@@ -217,13 +219,18 @@ def _preview_block(path: Path):
     return Image(data=_preview_jpeg_bytes(path), format="jpeg").to_image_content()
 
 
+_MD_INCLUDE_NOTE = (
+    "\n\nWICHTIG: Füge diese Markdown-Zeile(n) genau so in deine Antwort ein - "
+    "andernfalls sieht der Nutzer das Bild nicht. IMPORTANT: include this "
+    "markdown in your reply exactly as written, otherwise the user sees no "
+    "image:\n"
+)
+
+
 def _result_blocks(paths: list[Path], note: str) -> list:
     md_links = [f"![{p.name}]({link})" for p in paths if (link := _markdown_link(p))]
     if md_links:
-        note += (
-            "\n\nTo show the image(s) in the chat window, include this markdown in your reply:\n"
-            + "\n".join(md_links)
-        )
+        note += _MD_INCLUDE_NOTE + "\n".join(md_links)
     blocks: list = [TextContent(type="text", text=note + "\n" + "\n".join(str(p) for p in paths))]
     for path in paths:
         blocks.append(_preview_block(path))
@@ -633,6 +640,8 @@ def generate_image(prompt: str, size: str | None = None, n: int = 1, seed: int |
     editing a bad base (n=2 candidates help when uncertain). If only details are
     off, refine with edit_image. If two attempts share the same flaw, rewrite the
     prompt - the prompt is the problem, not the model.
+    Always include the markdown image link(s) from the result in your reply -
+    otherwise the user sees no image in the chat window.
     """
     _require_config()
     resolved_size, warnings = _resolve_size(size)
@@ -670,6 +679,8 @@ def edit_image(prompt: str, image_paths: list[str], size: str | None = None, n: 
     Editing anchors to the input image(s): use it when the base is right and only
     details need to change. If the composition or subject itself is wrong, go back
     to generate_image with a sharper prompt instead of editing a bad base.
+    Always include the markdown image link(s) from the result in your reply -
+    otherwise the user sees no image in the chat window.
     """
     _require_config()
     if not 1 <= len(image_paths) <= 16:
@@ -723,6 +734,8 @@ def scale_image(
     markdown link. Note: upscaling adds pixels, not detail - for a detail-true
     enlargement of a generated image, prefer edit_image(path, size="WxH"), which
     re-renders the scene at the target resolution.
+    Always include the markdown image link from the result in your reply -
+    otherwise the user sees no image in the chat window.
     """
     src = Path(path).expanduser().resolve()
     _read_image_file(path)  # validates existence and type
@@ -807,6 +820,9 @@ def get_image(path: str) -> list:
 
     Args:
         path: Absolute path of the image (as returned by the other tools).
+
+    Always include the markdown image link from the result in your reply -
+    otherwise the user sees no image in the chat window.
     """
     _start_image_server()
     resolved = Path(path).expanduser().resolve()
@@ -814,10 +830,7 @@ def get_image(path: str) -> list:
     text = str(resolved)
     link = _markdown_link(resolved)
     if link:
-        text += (
-            "\n\nTo show it in the chat window, include this markdown in your reply:\n"
-            f"![{resolved.name}]({link})"
-        )
+        text += _MD_INCLUDE_NOTE + f"![{resolved.name}]({link})"
     return [TextContent(type="text", text=text), _preview_block(resolved)]
 
 
